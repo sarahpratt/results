@@ -156,7 +156,6 @@
 
         // Store loaded model data
         const modelData = [];
-        const fileContents = {};  // Store file contents for opening
 
         // Parse evaluation HTML to extract metadata
         function parseEvalHtml(html, filename) {
@@ -288,12 +287,10 @@
         }
 
         function openModelDetails(modelName) {
-            const content = fileContents[modelName];
-            if (content) {
-                // Open in new tab
-                const newWindow = window.open('', '_blank');
-                newWindow.document.write(content);
-                newWindow.document.close();
+            const model = modelData.find(m => m.model_name === modelName);
+            if (model && model.filename) {
+                // Navigate to the file in same tab
+                window.location.href = model.filename;
             }
         }
 
@@ -311,7 +308,6 @@
 
                     const data = parseEvalHtml(html, filename);
                     modelData.push(data);
-                    fileContents[data.model_name] = html;
                     loadedCount++;
                 } catch (e) {
                     console.log(`Could not load ${filename}:`, e.message);

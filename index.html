@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIAL-RL Evaluation Results</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header section */
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .model-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .accuracy-display {
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .accuracy-value {
+            font-size: 64px;
+            font-weight: 800;
+            color: #2196f3;
+        }
+        .accuracy-label {
+            font-size: 18px;
+            color: #666;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stat-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Heatmap section */
+        .heatmap-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .heatmap-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Conversation explorer section */
+        .explorer-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .explorer-controls {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .control-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .control-group select {
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            min-width: 180px;
+            cursor: pointer;
+        }
+        .control-group select:focus {
+            outline: none;
+            border-color: #2196f3;
+        }
+        .pair-accuracy {
+            background: #e3f2fd;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .pair-accuracy-value {
+            font-weight: 700;
+            font-size: 18px;
+            color: #1565c0;
+        }
+
+        /* Conversation navigation */
+        .conv-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .conv-nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .conv-nav button {
+            padding: 8px 16px;
+            border: none;
+            background: #2196f3;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .conv-nav button:hover {
+            background: #1976d2;
+        }
+        .conv-nav button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .conv-counter {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* DIAL Gauge styles */
+        .dial-section {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .dial-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .dial-label {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+        .dial-label.calibrated {
+            color: #2e7d32;
+        }
+        .dial-label.too-easy, .dial-label.too-hard {
+            color: #c62828;
+        }
+        .dial-explanation {
+            flex: 1;
+            font-size: 14px;
+            color: #495057;
+            line-height: 1.5;
+        }
+        .dial-explanation strong {
+            color: #333;
+        }
+
+        /* Final evaluation section */
+        .final-evaluation {
+            background: #f0f4ff;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .final-evaluation h3 {
+            margin: 0 0 15px 0;
+            color: #1565c0;
+        }
+        .field {
+            margin-bottom: 15px;
+        }
+        .field:last-child {
+            margin-bottom: 0;
+        }
+        .field-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .field-value {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .student-responses {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .student-box {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .student-name {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .student-answer {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .extracted-answers {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .extracted-box {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .extracted-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .extracted-value {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        .extracted-value.correct {
+            color: #2e7d32;
+        }
+        .extracted-value.incorrect {
+            color: #c62828;
+        }
+        .extracted-value.key {
+            color: #1565c0;
+        }
+        .reward-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .reward-badge.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .reward-badge.failure {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+        .answer-key-section {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .answer-key-label {
+            font-size: 11px;
+            color: #1565c0;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .answer-key-value {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Conversation turns */
+        .conversation {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .turn {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .turn-header {
+            padding: 10px 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .turn-header.probing {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .turn-header.final {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .turn-number {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        .turn-content {
+            padding: 15px;
+        }
+
+        .no-selection {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .no-selection-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            margin-bottom: 20px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #2196f3;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            padding: 8px 16px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        .back-link:hover {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        @media (max-width: 768px) {
+            .student-responses, .extracted-answers {
+                grid-template-columns: 1fr;
+            }
+            .explorer-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="nav-bar">
+            <a href="index.html" class="back-link">← Back to Model Comparison</a>
+        </nav>
+
+        <!-- Header with model name and overall accuracy -->
+        <div class="header">
+            <div class="model-name">qwen3-4b-instruct</div>
+            <div class="accuracy-display">
+                <span class="accuracy-value">42.5%</span>
+                <span class="accuracy-label">Overall Accuracy</span>
+            </div>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span>Answer Key:</span>
+                    <span class="stat-value">claude-opus-4-5-20251101</span>
+                </div>
+                <div class="stat-item">
+                    <span>Boundary Models:</span>
+                    <span class="stat-value">4</span>
+                </div>
+                <div class="stat-item">
+                    <span>Pairs:</span>
+                    <span class="stat-value">6</span>
+                </div>
+                <div class="stat-item">
+                    <span>Total Rollouts:</span>
+                    <span class="stat-value">30</span>
+                </div>
+                <div class="stat-item">
+                    <span>Max Turns:</span>
+                    <span class="stat-value">4</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pairwise accuracy heatmap -->
+        <div class="heatmap-section">
+            <div class="section-title">Pairwise Accuracy Matrix</div>
+            <div class="heatmap-container">
+                <div id="heatmap"></div>
+            </div>
+        </div>
+
+        <!-- Conversation explorer -->
+        <div class="explorer-section">
+            <div class="section-title">Conversation Explorer</div>
+
+            <div class="explorer-controls">
+                <div class="control-group">
+                    <label class="control-label">Boundary Model A</label>
+                    <select id="model-a-select">
+                        <option value="claude-haiku">claude-haiku</option>
+                        <option value="gemma-3-1b-it">gemma-3-1b-it</option>
+                        <option value="llama-3.2-1b">llama-3.2-1b</option>
+                        <option value="qwen3-1.7b">qwen3-1.7b</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Boundary Model B</label>
+                    <select id="model-b-select">
+                        <option value="claude-haiku">claude-haiku</option>
+                        <option value="gemma-3-1b-it" selected>gemma-3-1b-it</option>
+                        <option value="llama-3.2-1b">llama-3.2-1b</option>
+                        <option value="qwen3-1.7b">qwen3-1.7b</option>
+                    </select>
+                </div>
+                <div class="pair-accuracy">
+                    <span>Pair Accuracy: </span>
+                    <span class="pair-accuracy-value" id="pair-accuracy">40%</span>
+                    <span> (2/5 rollouts)</span>
+                </div>
+            </div>
+
+            <div class="conv-nav">
+                <div class="conv-nav-buttons">
+                    <button id="prev-btn" onclick="prevConversation()">← Previous</button>
+                    <button id="next-btn" onclick="nextConversation()">Next →</button>
+                </div>
+                <div class="conv-counter">
+                    Conversation <span id="conv-current">1</span> of <span id="conv-total">5</span>
+                </div>
+            </div>
+
+            <div id="conversation-display">
+                <!-- Dial visualization -->
+                <div class="dial-section">
+                    <div class="dial-container">
+                        <svg width="180" height="110" viewBox="0 0 180 110">
+                            <!-- Background arc -->
+                            <path d="M 18 90 A 72 72 0 0 1 162 90"
+                                  fill="none"
+                                  stroke="#e0e0e0"
+                                  stroke-width="20"/>
+                            <!-- Too Easy zone (left) -->
+                            <path d="M 18 90 A 72 72 0 0 1 54 28.3"
+                                  fill="none"
+                                  stroke="#ef5350"
+                                  stroke-width="18"
+                                  stroke-linecap="butt"/>
+                            <!-- Calibrated zone (center) -->
+                            <path d="M 54 28.3 A 72 72 0 0 1 126 28.3"
+                                  fill="none"
+                                  stroke="#66bb6a"
+                                  stroke-width="18"
+                                  stroke-linecap="butt"/>
+                            <!-- Too Hard zone (right) -->
+                            <path d="M 126 28.3 A 72 72 0 0 1 162 90"
+                                  fill="none"
+                                  stroke="#ef5350"
+                                  stroke-width="18"
+                                  stroke-linecap="butt"/>
+                            <!-- Needle - pointing to calibrated (center) -->
+                            <g transform="rotate(0, 90, 90)">
+                                <polygon points="90,24 86,90 94,90" fill="#333"/>
+                                <circle cx="90" cy="90" r="9" fill="#333"/>
+                            </g>
+                            <!-- Labels -->
+                            <text x="10" y="105" font-size="10" fill="#666" font-weight="500">Easy</text>
+                            <text x="145" y="105" font-size="10" fill="#666" font-weight="500">Hard</text>
+                        </svg>
+                        <div class="dial-label calibrated">Calibrated</div>
+                    </div>
+                    <div class="dial-explanation">
+                        <strong>Success!</strong> The questioner generated a question that differentiates the boundary models. <strong>claude-haiku</strong> answered correctly while <strong>gemma-3-1b-it</strong> got it wrong.
+                    </div>
+                </div>
+
+                <!-- Final evaluation -->
+                <div class="final-evaluation">
+                    <h3>Final Evaluation (Turn 4 of 4)</h3>
+
+                    <div class="field">
+                        <div class="field-label">Final Differentiating Question</div>
+                        <div class="field-value">Based on my probing, I've identified that the models differ in their ability to handle nested arithmetic with order of operations.
+
+#What is the result of: 8 + 4 × 3 - 12 ÷ 4?</div>
+                    </div>
+
+                    <div class="field">
+                        <div class="field-label">Boundary Model Responses</div>
+                        <div class="student-responses">
+                            <div class="student-box">
+                                <div class="student-name">Boundary A: claude-haiku</div>
+                                <div class="student-answer">Let me solve this step by step using order of operations (PEMDAS):
+
+8 + 4 × 3 - 12 ÷ 4
+= 8 + 12 - 3
+= 20 - 3
+= 17
+
+The answer is \boxed{17}</div>
+                            </div>
+                            <div class="student-box">
+                                <div class="student-name">Boundary B: gemma-3-1b-it</div>
+                                <div class="student-answer">I'll calculate this:
+8 + 4 = 12
+12 × 3 = 36
+36 - 12 = 24
+24 ÷ 4 = 6
+
+The answer is \boxed{6}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="extracted-answers">
+                        <div class="extracted-box">
+                            <div class="extracted-label">Answer Key (Claude)</div>
+                            <div class="extracted-value key">17</div>
+                        </div>
+                        <div class="extracted-box">
+                            <div class="extracted-label">Boundary A (claude-haiku)</div>
+                            <div class="extracted-value correct">17 ✓</div>
+                        </div>
+                        <div class="extracted-box">
+                            <div class="extracted-label">Boundary B (gemma-3-1b-it)</div>
+                            <div class="extracted-value incorrect">6 ✗</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong>Reward:</strong>
+                        <span class="reward-badge success">1.0 - Exactly one boundary model correct</span>
+                    </div>
+
+                    <div class="answer-key-section">
+                        <div class="answer-key-label">Full Answer Key Response</div>
+                        <div class="answer-key-value">Following order of operations:
+First, multiplication: 4 × 3 = 12
+Then, division: 12 ÷ 4 = 3
+Now left to right: 8 + 12 - 3 = 17
+
+\boxed{17}</div>
+                    </div>
+                </div>
+
+                <!-- Conversation turns -->
+                <div class="conversation">
+                    <div class="turn">
+                        <div class="turn-header probing">
+                            <span>Probing Question 1</span>
+                            <span class="turn-number">Turn 1 of 4</span>
+                        </div>
+                        <div class="turn-content">
+                            <div class="field">
+                                <div class="field-label">Questioner Response</div>
+                                <div class="field-value">I'll start with a basic arithmetic question to gauge the models' capabilities.
+
+#What is 15 + 27?</div>
+                            </div>
+                            <div class="field">
+                                <div class="field-label">Boundary Model Responses</div>
+                                <div class="student-responses">
+                                    <div class="student-box">
+                                        <div class="student-name">Boundary A: claude-haiku</div>
+                                        <div class="student-answer">15 + 27 = 42
+
+\boxed{42}</div>
+                                    </div>
+                                    <div class="student-box">
+                                        <div class="student-name">Boundary B: gemma-3-1b-it</div>
+                                        <div class="student-answer">15 + 27 = 42
+
+\boxed{42}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="turn">
+                        <div class="turn-header probing">
+                            <span>Probing Question 2</span>
+                            <span class="turn-number">Turn 2 of 4</span>
+                        </div>
+                        <div class="turn-content">
+                            <div class="field">
+                                <div class="field-label">Questioner Response</div>
+                                <div class="field-value">Both got basic addition. Let me try something with multiplication.
+
+#What is 13 × 7?</div>
+                            </div>
+                            <div class="field">
+                                <div class="field-label">Boundary Model Responses</div>
+                                <div class="student-responses">
+                                    <div class="student-box">
+                                        <div class="student-name">Boundary A: claude-haiku</div>
+                                        <div class="student-answer">13 × 7 = 91
+
+\boxed{91}</div>
+                                    </div>
+                                    <div class="student-box">
+                                        <div class="student-name">Boundary B: gemma-3-1b-it</div>
+                                        <div class="student-answer">13 × 7 = 91
+
+\boxed{91}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="turn">
+                        <div class="turn-header probing">
+                            <span>Probing Question 3</span>
+                            <span class="turn-number">Turn 3 of 4</span>
+                        </div>
+                        <div class="turn-content">
+                            <div class="field">
+                                <div class="field-label">Questioner Response</div>
+                                <div class="field-value">Both still performing well. Let me test order of operations which often trips up smaller models.
+
+#What is 2 + 3 × 4?</div>
+                            </div>
+                            <div class="field">
+                                <div class="field-label">Boundary Model Responses</div>
+                                <div class="student-responses">
+                                    <div class="student-box">
+                                        <div class="student-name">Boundary A: claude-haiku</div>
+                                        <div class="student-answer">Following order of operations, multiplication comes first:
+3 × 4 = 12
+Then addition:
+2 + 12 = 14
+
+\boxed{14}</div>
+                                    </div>
+                                    <div class="student-box">
+                                        <div class="student-name">Boundary B: gemma-3-1b-it</div>
+                                        <div class="student-answer">2 + 3 = 5
+5 × 4 = 20
+
+\boxed{20}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Example data - in real implementation this would be injected from Python
+        const evalData = {
+            questioner_model: "qwen3-4b-instruct",
+            overall_accuracy: 0.425,
+            total_rollouts: 30,
+            num_boundary_models: 4,
+            num_pairs: 6,
+            max_turns: 4,
+            boundary_models: ["claude-haiku", "gemma-3-1b-it", "llama-3.2-1b", "qwen3-1.7b"],
+            // Upper triangular matrix of accuracies (row, col) where row < col
+            pairwise_accuracy: [
+                [null, 0.40, 0.60, 0.35],
+                [null, null, 0.45, 0.50],
+                [null, null, null, 0.30],
+                [null, null, null, null]
+            ],
+            // Conversations indexed by "modelA|modelB"
+            conversations: {
+                "claude-haiku|gemma-3-1b-it": [
+                    // ... conversation objects would go here
+                ]
+            }
+        };
+
+        // Create heatmap
+        const models = evalData.boundary_models;
+        const n = models.length;
+
+        // Build z-values for upper triangular heatmap
+        const z = [];
+        const text = [];
+        for (let i = 0; i < n; i++) {
+            const row = [];
+            const textRow = [];
+            for (let j = 0; j < n; j++) {
+                if (i < j) {
+                    const acc = evalData.pairwise_accuracy[i][j];
+                    row.push(acc);
+                    textRow.push(`${(acc * 100).toFixed(0)}%`);
+                } else {
+                    row.push(null);
+                    textRow.push('');
+                }
+            }
+            z.push(row);
+            text.push(textRow);
+        }
+
+        const heatmapData = [{
+            z: z,
+            x: models,
+            y: models,
+            type: 'heatmap',
+            colorscale: [
+                [0, '#ffcdd2'],
+                [0.5, '#fff9c4'],
+                [1, '#c8e6c9']
+            ],
+            zmin: 0,
+            zmax: 1,
+            text: text,
+            texttemplate: '%{text}',
+            textfont: { size: 14, color: '#333' },
+            hoverongaps: false,
+            hovertemplate: '%{y} vs %{x}<br>Accuracy: %{text}<extra></extra>',
+            showscale: true,
+            colorbar: {
+                title: 'Accuracy',
+                tickformat: '.0%'
+            }
+        }];
+
+        const heatmapLayout = {
+            width: 500,
+            height: 450,
+            xaxis: {
+                title: 'Model B',
+                tickangle: -45
+            },
+            yaxis: {
+                title: 'Model A',
+                autorange: 'reversed'
+            },
+            margin: { l: 120, r: 80, t: 20, b: 100 }
+        };
+
+        Plotly.newPlot('heatmap', heatmapData, heatmapLayout, { responsive: true });
+
+        // Conversation navigation (placeholder functions)
+        let currentConvIndex = 0;
+        const totalConversations = 5;
+
+        function updateNavButtons() {
+            document.getElementById('prev-btn').disabled = currentConvIndex === 0;
+            document.getElementById('next-btn').disabled = currentConvIndex === totalConversations - 1;
+            document.getElementById('conv-current').textContent = currentConvIndex + 1;
+        }
+
+        function prevConversation() {
+            if (currentConvIndex > 0) {
+                currentConvIndex--;
+                updateNavButtons();
+                // In real implementation: loadConversation(currentConvIndex);
+            }
+        }
+
+        function nextConversation() {
+            if (currentConvIndex < totalConversations - 1) {
+                currentConvIndex++;
+                updateNavButtons();
+                // In real implementation: loadConversation(currentConvIndex);
+            }
+        }
+
+        // Handle dropdown changes
+        document.getElementById('model-a-select').addEventListener('change', function() {
+            // In real implementation: filter conversations by selected pair
+            currentConvIndex = 0;
+            updateNavButtons();
+        });
+
+        document.getElementById('model-b-select').addEventListener('change', function() {
+            // In real implementation: filter conversations by selected pair
+            currentConvIndex = 0;
+            updateNavButtons();
+        });
+
+        // Handle heatmap clicks to select pair
+        document.getElementById('heatmap').on('plotly_click', function(data) {
+            const point = data.points[0];
+            if (point.z !== null) {
+                document.getElementById('model-a-select').value = point.y;
+                document.getElementById('model-b-select').value = point.x;
+                // In real implementation: load conversations for this pair
+            }
+        });
+
+        updateNavButtons();
+    </script>
+</body>
+</html>

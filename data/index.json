@@ -1,0 +1,19 @@
+{
+  "models": [
+    {
+      "model_name": "qwen3-4b-instruct",
+      "filename": "eval_qwen3-4b-instruct",
+      "accuracy": 0.5333333333333333,
+      "total_rollouts": 15,
+      "num_boundary_models": 3,
+      "num_pairs": 3,
+      "answer_key_model": "claude-haiku-4-5-20251001",
+      "too_easy": 2,
+      "calibrated": 8,
+      "too_hard": 5,
+      "too_easy_pct": 13.333333333333334,
+      "calibrated_pct": 53.333333333333336,
+      "too_hard_pct": 33.333333333333336
+    }
+  ]
+}

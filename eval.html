@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIAL-RL Evaluation</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="nav-bar">
+            <a href="index.html" class="back-link">&#8592; Back to Model Comparison</a>
+        </nav>
+
+        <!-- Loading state -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading evaluation data...</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="error" class="error" style="display: none;">
+            <div class="error-icon">&#9888;</div>
+            <p id="error-message">Failed to load evaluation data.</p>
+        </div>
+
+        <!-- Main content (hidden until loaded) -->
+        <div id="main-content" style="display: none;">
+            <!-- Header with model name and overall accuracy -->
+            <div class="header">
+                <div class="model-name" id="model-name"></div>
+                <div class="accuracy-display">
+                    <span class="accuracy-value" id="accuracy-value"></span>
+                    <span class="accuracy-label">Overall Accuracy</span>
+                </div>
+                <div class="stats-row" id="stats-row"></div>
+                <!-- Difficulty Calibration Stats -->
+                <div class="difficulty-stats">
+                    <div class="difficulty-title">Question Difficulty Distribution</div>
+                    <div class="difficulty-bar" id="difficulty-bar"></div>
+                    <div class="difficulty-legend" id="difficulty-legend"></div>
+                </div>
+            </div>
+
+            <!-- Pairwise accuracy heatmap -->
+            <div class="heatmap-section">
+                <div class="section-title">Pairwise Accuracy Matrix</div>
+                <div class="heatmap-container">
+                    <div id="heatmap"></div>
+                </div>
+            </div>
+
+            <!-- Conversation explorer -->
+            <div class="explorer-section">
+                <div class="section-title">Conversation Explorer</div>
+
+                <div class="explorer-controls">
+                    <div class="control-group">
+                        <label class="control-label">Boundary Model A</label>
+                        <select id="model-a-select"></select>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Boundary Model B</label>
+                        <select id="model-b-select"></select>
+                    </div>
+                    <div class="pair-accuracy">
+                        <span>Pair Accuracy: </span>
+                        <span class="pair-accuracy-value" id="pair-accuracy">--</span>
+                        <span id="pair-stats"></span>
+                    </div>
+                </div>
+
+                <div class="conv-nav">
+                    <div class="conv-nav-buttons">
+                        <button id="prev-btn" onclick="prevConversation()">&#8592; Previous</button>
+                        <button id="next-btn" onclick="nextConversation()">Next &#8594;</button>
+                    </div>
+                    <div class="conv-counter">
+                        Conversation <span id="conv-current">1</span> of <span id="conv-total">0</span>
+                    </div>
+                </div>
+
+                <div id="conversation-display">
+                    <div class="no-selection">
+                        <div class="no-selection-icon">&#128172;</div>
+                        <p>Select a model pair to view conversations</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get model name from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const modelName = urlParams.get('model');
+
+        // Store loaded data
+        let evalData = null;
+        let currentConvIndex = 0;
+        let currentConversations = [];
+
+        // Load data and initialize
+        async function init() {
+            if (!modelName) {
+                showError('No model specified. Use ?model=model-name in the URL.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`data/${modelName}.json`);
+                if (!response.ok) {
+                    throw new Error(`Could not load data for model: ${modelName}`);
+                }
+                evalData = await response.json();
+
+                document.title = `DIAL-RL Evaluation: ${evalData.metadata.questioner_model}`;
+                renderPage();
+            } catch (e) {
+                showError(e.message);
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        function renderPage() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+
+            const meta = evalData.metadata;
+            const stats = evalData.overall_stats;
+
+            // Header
+            document.getElementById('model-name').textContent = meta.questioner_model;
+            document.getElementById('accuracy-value').textContent =
+                (stats.accuracy * 100).toFixed(1) + '%';
+
+            // Stats row
+            const statsRow = document.getElementById('stats-row');
+            statsRow.innerHTML = `
+                <div class="stat-item">
+                    <span>Answer Key:</span>
+                    <span class="stat-value">${meta.answer_key_model}</span>
+                </div>
+                <div class="stat-item">
+                    <span>Boundary Models:</span>
+                    <span class="stat-value">${meta.num_boundary_models}</span>
+                </div>
+                <div class="stat-item">
+                    <span>Pairs:</span>
+                    <span class="stat-value">${meta.num_pairs}</span>
+                </div>
+                <div class="stat-item">
+                    <span>Total Rollouts:</span>
+                    <span class="stat-value">${meta.total_rollouts}</span>
+                </div>
+                <div class="stat-item">
+                    <span>Max Turns:</span>
+                    <span class="stat-value">${meta.max_turns}</span>
+                </div>
+            `;
+
+            // Difficulty bar
+            const total = stats.too_easy + stats.calibrated + stats.too_hard;
+            const tooEasyPct = (stats.too_easy / total * 100).toFixed(1);
+            const calibratedPct = (stats.calibrated / total * 100).toFixed(1);
+            const tooHardPct = (stats.too_hard / total * 100).toFixed(1);
+
+            document.getElementById('difficulty-bar').innerHTML = `
+                <div class="difficulty-segment too-easy" style="width: ${tooEasyPct}%">${tooEasyPct}%</div>
+                <div class="difficulty-segment calibrated" style="width: ${calibratedPct}%">${calibratedPct}%</div>
+                <div class="difficulty-segment too-hard" style="width: ${tooHardPct}%">${tooHardPct}%</div>
+            `;
+
+            document.getElementById('difficulty-legend').innerHTML = `
+                <div class="difficulty-legend-item">
+                    <span class="difficulty-legend-color too-easy"></span>
+                    <span>Too Easy (${stats.too_easy})</span>
+                </div>
+                <div class="difficulty-legend-item">
+                    <span class="difficulty-legend-color calibrated"></span>
+                    <span>Calibrated (${stats.calibrated})</span>
+                </div>
+                <div class="difficulty-legend-item">
+                    <span class="difficulty-legend-color too-hard"></span>
+                    <span>Too Hard (${stats.too_hard})</span>
+                </div>
+            `;
+
+            // Populate model selects
+            populateModelSelects();
+
+            // Render heatmap
+            renderHeatmap();
+
+            // Set up event listeners
+            document.getElementById('model-a-select').addEventListener('change', onPairChange);
+            document.getElementById('model-b-select').addEventListener('change', onPairChange);
+        }
+
+        function populateModelSelects() {
+            const models = evalData.boundary_models;
+            const selectA = document.getElementById('model-a-select');
+            const selectB = document.getElementById('model-b-select');
+
+            models.forEach(model => {
+                selectA.innerHTML += `<option value="${model}">${model}</option>`;
+                selectB.innerHTML += `<option value="${model}">${model}</option>`;
+            });
+
+            // Set default selection if there are at least 2 models
+            if (models.length >= 2) {
+                selectA.value = models[0];
+                selectB.value = models[1];
+                onPairChange();
+            }
+        }
+
+        function renderHeatmap() {
+            const models = evalData.boundary_models;
+            const pairwise = evalData.pairwise_accuracy;
+
+            // Create matrix
+            const n = models.length;
+            const matrix = [];
+            const annotations = [];
+
+            for (let i = 0; i < n; i++) {
+                const row = [];
+                for (let j = 0; j < n; j++) {
+                    if (i === j) {
+                        row.push(null);
+                    } else {
+                        const key = i < j ?
+                            `${models[i]}|${models[j]}` :
+                            `${models[j]}|${models[i]}`;
+                        const val = pairwise[key];
+                        row.push(val !== undefined ? val : null);
+
+                        if (val !== undefined) {
+                            annotations.push({
+                                x: models[j],
+                                y: models[i],
+                                text: (val * 100).toFixed(0) + '%',
+                                showarrow: false,
+                                font: { color: val > 0.5 ? 'white' : 'black', size: 10 }
+                            });
+                        }
+                    }
+                }
+                matrix.push(row);
+            }
+
+            const trace = {
+                z: matrix,
+                x: models,
+                y: models,
+                type: 'heatmap',
+                colorscale: [
+                    [0, '#ffcdd2'],
+                    [0.5, '#fff9c4'],
+                    [1, '#c8e6c9']
+                ],
+                zmin: 0,
+                zmax: 1,
+                hoverongaps: false,
+                hovertemplate: '%{y} vs %{x}<br>Accuracy: %{z:.1%}<extra></extra>'
+            };
+
+            const layout = {
+                annotations: annotations,
+                xaxis: { side: 'bottom', tickangle: -45 },
+                yaxis: { autorange: 'reversed' },
+                margin: { t: 30, b: 120, l: 120, r: 30 },
+                height: Math.max(400, n * 25 + 150)
+            };
+
+            Plotly.newPlot('heatmap', [trace], layout, { responsive: true });
+
+            // Click handler for heatmap
+            document.getElementById('heatmap').on('plotly_click', function(data) {
+                const point = data.points[0];
+                if (point.z !== null) {
+                    document.getElementById('model-a-select').value = point.y;
+                    document.getElementById('model-b-select').value = point.x;
+                    onPairChange();
+                }
+            });
+        }
+
+        function onPairChange() {
+            const modelA = document.getElementById('model-a-select').value;
+            const modelB = document.getElementById('model-b-select').value;
+
+            if (modelA === modelB) {
+                document.getElementById('pair-accuracy').textContent = '--';
+                document.getElementById('pair-stats').textContent = '';
+                document.getElementById('conversation-display').innerHTML = `
+                    <div class="no-selection">
+                        <p>Please select two different models</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get conversations for this pair
+            const key1 = `${modelA}|${modelB}`;
+            const key2 = `${modelB}|${modelA}`;
+            currentConversations = evalData.conversations[key1] || evalData.conversations[key2] || [];
+            currentConvIndex = 0;
+
+            // Get pairwise accuracy
+            const pairwise = evalData.pairwise_accuracy;
+            const accuracy = pairwise[key1] !== undefined ? pairwise[key1] : pairwise[key2];
+
+            document.getElementById('pair-accuracy').textContent =
+                accuracy !== undefined ? (accuracy * 100).toFixed(1) + '%' : '--';
+
+            // Count outcomes
+            let calibrated = 0, tooEasy = 0, tooHard = 0;
+            currentConversations.forEach(c => {
+                if (c.outcome === 'calibrated') calibrated++;
+                else if (c.outcome === 'too_easy') tooEasy++;
+                else if (c.outcome === 'too_hard') tooHard++;
+            });
+            document.getElementById('pair-stats').textContent =
+                `(${calibrated} calibrated, ${tooEasy} too easy, ${tooHard} too hard)`;
+
+            document.getElementById('conv-total').textContent = currentConversations.length;
+            renderConversation();
+        }
+
+        function renderConversation() {
+            if (currentConversations.length === 0) {
+                document.getElementById('conversation-display').innerHTML = `
+                    <div class="no-selection">
+                        <p>No conversations found for this pair</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const conv = currentConversations[currentConvIndex];
+            document.getElementById('conv-current').textContent = currentConvIndex + 1;
+
+            // Update button states
+            document.getElementById('prev-btn').disabled = currentConvIndex === 0;
+            document.getElementById('next-btn').disabled = currentConvIndex >= currentConversations.length - 1;
+
+            // Build conversation HTML
+            let html = `
+                <div class="outcome-display">
+                    <div class="outcome-item">
+                        <span class="outcome-label">Outcome</span>
+                        <span class="outcome-value ${conv.outcome}">${conv.outcome.replace('_', ' ')}</span>
+                    </div>
+                    <div class="outcome-item">
+                        <span class="outcome-label">Model A</span>
+                        <span class="outcome-value ${conv.a_correct ? 'correct' : 'incorrect'}">
+                            ${conv.a_correct ? 'Correct' : 'Incorrect'}
+                        </span>
+                    </div>
+                    <div class="outcome-item">
+                        <span class="outcome-label">Model B</span>
+                        <span class="outcome-value ${conv.b_correct ? 'correct' : 'incorrect'}">
+                            ${conv.b_correct ? 'Correct' : 'Incorrect'}
+                        </span>
+                    </div>
+                    <div class="outcome-item">
+                        <span class="outcome-label">Reward</span>
+                        <span class="outcome-value">${conv.reward}</span>
+                    </div>
+                </div>
+            `;
+
+            // Messages
+            html += '<div class="conversation">';
+            conv.prompt.forEach(msg => {
+                html += `
+                    <div class="message ${msg.role}">
+                        <div class="message-role">${msg.role}</div>
+                        <div class="message-content">${escapeHtml(msg.content)}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Final answers
+            html += `
+                <div class="final-answers">
+                    <h4>Final Answers</h4>
+                    <div class="answer-item">
+                        <div class="answer-label">Model A Answer</div>
+                        <div class="answer-content">${escapeHtml(conv.final_boundary_a_answer || 'N/A')}</div>
+                    </div>
+                    <div class="answer-item">
+                        <div class="answer-label">Model B Answer</div>
+                        <div class="answer-content">${escapeHtml(conv.final_boundary_b_answer || 'N/A')}</div>
+                    </div>
+                    <div class="answer-item">
+                        <div class="answer-label">Answer Key</div>
+                        <div class="answer-content">${escapeHtml(conv.answer_key_answer || 'N/A')}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('conversation-display').innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function prevConversation() {
+            if (currentConvIndex > 0) {
+                currentConvIndex--;
+                renderConversation();
+            }
+        }
+
+        function nextConversation() {
+            if (currentConvIndex < currentConversations.length - 1) {
+                currentConvIndex++;
+                renderConversation();
+            }
+        }
+
+        // Initialize on page load
+        init();
+    </script>
+</body>
+</html>

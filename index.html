@@ -5,168 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DIAL-RL Evaluation Results</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 30px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .header h1 {
-            font-size: 32px;
-            color: #333;
-            margin: 0 0 10px 0;
-        }
-        .header p {
-            color: #666;
-            font-size: 16px;
-            margin: 0;
-        }
-        .chart-section {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .chart-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .legend {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #555;
-        }
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 3px;
-        }
-        .legend-color.too-easy {
-            background: #ef5350;
-        }
-        .legend-color.calibrated {
-            background: #66bb6a;
-        }
-        .legend-color.too-hard {
-            background: #ffa726;
-        }
-        .instructions {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            border-radius: 0 8px 8px 0;
-            font-size: 14px;
-            color: #1565c0;
-        }
-        .model-list {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .model-list h2 {
-            font-size: 18px;
-            color: #333;
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-        .model-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .model-item:hover {
-            background: #f5f5f5;
-            border-color: #2196f3;
-        }
-        .model-item:last-child {
-            margin-bottom: 0;
-        }
-        .model-name {
-            font-weight: 600;
-            color: #333;
-        }
-        .model-accuracy {
-            font-size: 18px;
-            font-weight: 700;
-            color: #66bb6a;
-        }
-        .model-details {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-        }
-        .difficulty-breakdown {
-            display: flex;
-            gap: 12px;
-            font-size: 11px;
-            margin-top: 6px;
-        }
-        .difficulty-breakdown span {
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-        .difficulty-breakdown .too-easy {
-            background: #ffebee;
-            color: #c62828;
-        }
-        .difficulty-breakdown .calibrated {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
-        .difficulty-breakdown .too-hard {
-            background: #fff3e0;
-            color: #e65100;
-        }
-        .no-data {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-        .no-data-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-        .no-data p {
-            margin: 5px 0;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
@@ -179,182 +18,86 @@
             <strong>Click on any bar or model card</strong> to view detailed results including pairwise accuracy heatmap and conversation explorer.
         </div>
 
-        <div class="chart-section">
-            <div class="chart-title">Model Accuracy (Calibrated %)</div>
-            <div id="accuracy-chart"></div>
+        <!-- Loading state -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading evaluation data...</p>
         </div>
 
-        <div class="chart-section">
-            <div class="chart-title">Question Difficulty Distribution by Model</div>
-            <div class="legend">
-                <div class="legend-item">
-                    <span class="legend-color too-easy"></span>
-                    <span>Too Easy (both correct)</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color calibrated"></span>
-                    <span>Calibrated (exactly one correct)</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color too-hard"></span>
-                    <span>Too Hard (both wrong)</span>
-                </div>
+        <!-- Main content (hidden until loaded) -->
+        <div id="main-content" style="display: none;">
+            <div class="chart-section">
+                <div class="chart-title">Model Accuracy (Calibrated %)</div>
+                <div id="accuracy-chart"></div>
             </div>
-            <div id="difficulty-chart"></div>
-        </div>
 
-        <div class="model-list">
-            <h2>Evaluated Models</h2>
-            <div id="model-list">
-                <div class="no-data">
-                    <p>No models loaded.</p>
+            <div class="chart-section">
+                <div class="chart-title">Question Difficulty Distribution by Model</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-color too-easy"></span>
+                        <span>Too Easy (both correct)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color calibrated"></span>
+                        <span>Calibrated (exactly one correct)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color too-hard"></span>
+                        <span>Too Hard (both wrong)</span>
+                    </div>
+                </div>
+                <div id="difficulty-chart"></div>
+            </div>
+
+            <div class="model-list">
+                <h2>Evaluated Models</h2>
+                <div id="model-list">
+                    <div class="no-data">
+                        <p>No models loaded.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // =============================================================================
-        // EVAL FILES - Add your evaluation HTML files here
-        // =============================================================================
-        const EVAL_FILES = [
-            'eval_llama-3.2-3B-instruct.html',
-            'eval_claude-haiku.html',
-            'eval_claude-sonnet.html',
-            'eval_qwen3-4b-instruct.html',
-            'eval_gpt-oss-20b.html',
-            'eval_gemma-3-4b-it.html'
-            // Add more eval files as you run evaluations
-        ];
-
         // Store loaded model data
-        const modelData = [];
+        let modelData = [];
 
-        // Parse evaluation HTML to extract metadata including difficulty stats
-        function parseEvalHtml(html, filename) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
+        async function init() {
+            try {
+                const response = await fetch('data/index.json');
+                if (!response.ok) {
+                    throw new Error('Could not load index.json');
+                }
+                const data = await response.json();
+                modelData = data.models;
 
-            // Extract model name
-            const modelNameEl = doc.querySelector('.model-name');
-            const modelName = modelNameEl ? modelNameEl.textContent.trim() : filename.replace('.html', '');
+                // Sort by calibrated percentage descending
+                modelData.sort((a, b) => b.calibrated_pct - a.calibrated_pct);
 
-            // Extract accuracy from the accuracy-value element
-            const accuracyEl = doc.querySelector('.accuracy-value');
-            let accuracy = 0;
-            if (accuracyEl) {
-                const text = accuracyEl.textContent.trim();
-                accuracy = parseFloat(text.replace('%', '')) / 100;
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+
+                updateChart();
+                updateModelList();
+            } catch (e) {
+                document.getElementById('loading').innerHTML = `
+                    <div class="error">
+                        <div class="error-icon">&#9888;</div>
+                        <p>Failed to load evaluation data: ${e.message}</p>
+                    </div>
+                `;
             }
-
-            // Extract stats
-            const stats = {};
-            const statItems = doc.querySelectorAll('.stat-item');
-            statItems.forEach(item => {
-                const label = item.querySelector('span:first-child');
-                const value = item.querySelector('.stat-value');
-                if (label && value) {
-                    const key = label.textContent.replace(':', '').trim().toLowerCase().replace(/\s+/g, '_');
-                    stats[key] = value.textContent.trim();
-                }
-            });
-
-            // Extract difficulty stats from the difficulty bar segments
-            let tooEasyPct = 0, calibratedPct = 0, tooHardPct = 0;
-            let tooEasyCount = 0, calibratedCount = 0, tooHardCount = 0;
-            
-            // Try to get percentages from the bar segments
-            const segments = doc.querySelectorAll('.difficulty-segment');
-            segments.forEach(seg => {
-                const style = seg.getAttribute('style') || '';
-                const widthMatch = style.match(/width:\s*([\d.]+)%/);
-                const pct = widthMatch ? parseFloat(widthMatch[1]) : 0;
-                
-                if (seg.classList.contains('too-easy')) {
-                    tooEasyPct = pct;
-                } else if (seg.classList.contains('calibrated')) {
-                    calibratedPct = pct;
-                } else if (seg.classList.contains('too-hard')) {
-                    tooHardPct = pct;
-                }
-            });
-
-            // Try to get counts from legend
-            const legendItems = doc.querySelectorAll('.difficulty-stats .legend-item');
-            legendItems.forEach(item => {
-                const text = item.textContent;
-                const countMatch = text.match(/\(([\d,]+)\)/);
-                const count = countMatch ? parseInt(countMatch[1].replace(',', '')) : 0;
-                
-                if (text.includes('Too Easy')) {
-                    tooEasyCount = count;
-                } else if (text.includes('Calibrated')) {
-                    calibratedCount = count;
-                } else if (text.includes('Too Hard')) {
-                    tooHardCount = count;
-                }
-            });
-
-            // If we didn't find difficulty stats, try to compute from evalData
-            if (tooEasyPct === 0 && calibratedPct === 0 && tooHardPct === 0) {
-                // Try to extract from embedded JavaScript
-                const scriptMatch = html.match(/const evalData = (\{[\s\S]*?\});/);
-                if (scriptMatch) {
-                    try {
-                        const evalData = JSON.parse(scriptMatch[1]);
-                        const conversations = evalData.conversations || {};
-                        
-                        let tooEasy = 0, calibrated = 0, tooHard = 0;
-                        for (const [pair, convList] of Object.entries(conversations)) {
-                            for (const conv of convList) {
-                                const aCorrect = conv.a_correct;
-                                const bCorrect = conv.b_correct;
-                                
-                                if (aCorrect && bCorrect) tooEasy++;
-                                else if (!aCorrect && !bCorrect) tooHard++;
-                                else calibrated++;
-                            }
-                        }
-                        
-                        const total = tooEasy + calibrated + tooHard;
-                        if (total > 0) {
-                            tooEasyPct = (tooEasy / total) * 100;
-                            calibratedPct = (calibrated / total) * 100;
-                            tooHardPct = (tooHard / total) * 100;
-                            tooEasyCount = tooEasy;
-                            calibratedCount = calibrated;
-                            tooHardCount = tooHard;
-                        }
-                    } catch (e) {
-                        console.log('Could not parse evalData:', e);
-                    }
-                }
-            }
-
-            return {
-                model_name: modelName,
-                accuracy: accuracy,
-                total_rollouts: stats.total_rollouts || 'N/A',
-                boundary_models: stats.boundary_models || 'N/A',
-                pairs: stats.pairs || 'N/A',
-                answer_key: stats.answer_key || 'N/A',
-                filename: filename,
-                too_easy_pct: tooEasyPct,
-                calibrated_pct: calibratedPct,
-                too_hard_pct: tooHardPct,
-                too_easy_count: tooEasyCount,
-                calibrated_count: calibratedCount,
-                too_hard_count: tooHardCount
-            };
         }
 
         function updateChart() {
             if (modelData.length === 0) {
                 document.getElementById('accuracy-chart').innerHTML = `
                     <div class="no-data">
-                        <div class="no-data-icon">📊</div>
-                        <p>No evaluation files found.</p>
-                        <p>Add eval files to the EVAL_FILES list.</p>
+                        <div class="no-data-icon">&#128202;</div>
+                        <p>No evaluation data found.</p>
                     </div>
                 `;
                 document.getElementById('difficulty-chart').innerHTML = '';
@@ -506,7 +249,7 @@
                     <div>
                         <div class="model-name">${m.model_name}</div>
                         <div class="model-details">
-                            ${m.total_rollouts} rollouts | ${m.pairs} pairs | Answer key: ${m.answer_key}
+                            ${m.total_rollouts} rollouts | ${m.num_pairs} pairs | Answer key: ${m.answer_key_model}
                         </div>
                         <div class="difficulty-breakdown">
                             <span class="too-easy">Too Easy: ${m.too_easy_pct.toFixed(1)}%</span>
@@ -521,41 +264,13 @@
 
         function openModelDetails(modelName) {
             const model = modelData.find(m => m.model_name === modelName);
-            if (model && model.filename) {
-                window.location.href = model.filename;
+            if (model) {
+                window.location.href = `eval.html?model=${encodeURIComponent(model.filename)}`;
             }
         }
 
-        // Auto-load eval files from EVAL_FILES list
-        async function loadEvalFiles() {
-            let loadedCount = 0;
-
-            for (const filename of EVAL_FILES) {
-                try {
-                    const response = await fetch(filename);
-                    if (!response.ok) continue;
-
-                    const html = await response.text();
-                    if (!html.includes('accuracy-value') || !html.includes('model-name')) continue;
-
-                    const data = parseEvalHtml(html, filename);
-                    modelData.push(data);
-                    loadedCount++;
-                } catch (e) {
-                    console.log(`Could not load ${filename}:`, e.message);
-                }
-            }
-
-            // Sort by calibrated percentage (accuracy) descending
-            modelData.sort((a, b) => b.calibrated_pct - a.calibrated_pct);
-
-            // Update display
-            updateChart();
-            updateModelList();
-        }
-
-        // Initialize - auto-load files
-        loadEvalFiles();
+        // Initialize on page load
+        init();
     </script>
 </body>
 </html>

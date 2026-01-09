@@ -406,28 +406,28 @@
                 align-items: stretch;
             }
         }
-    
-        /* Difficulty Stats Bar */
+
+        /* Difficulty Stats Bar - scoped styles */
         .difficulty-stats {
             margin-top: 25px;
             padding-top: 20px;
             border-top: 1px solid #e0e0e0;
         }
-        .difficulty-title {
+        .difficulty-stats .difficulty-title {
             font-size: 14px;
             font-weight: 600;
             color: #333;
             margin-bottom: 12px;
             text-align: center;
         }
-        .difficulty-bar {
+        .difficulty-stats .difficulty-bar {
             display: flex;
             height: 32px;
             border-radius: 6px;
             overflow: hidden;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
-        .difficulty-segment {
+        .difficulty-stats .difficulty-segment {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -435,46 +435,44 @@
             font-weight: 600;
             color: white;
             min-width: 40px;
-            transition: all 0.3s;
         }
-        .difficulty-segment.too-easy {
+        .difficulty-stats .difficulty-segment.too-easy {
             background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
         }
-        .difficulty-segment.calibrated {
+        .difficulty-stats .difficulty-segment.calibrated {
             background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
         }
-        .difficulty-segment.too-hard {
+        .difficulty-stats .difficulty-segment.too-hard {
             background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
         }
-        .difficulty-legend {
+        .difficulty-stats .difficulty-legend {
             display: flex;
             justify-content: center;
             gap: 30px;
             margin-top: 12px;
             flex-wrap: wrap;
         }
-        .legend-item {
+        .difficulty-stats .difficulty-legend-item {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 13px;
             color: #555;
         }
-        .legend-color {
+        .difficulty-stats .difficulty-legend-color {
             width: 14px;
             height: 14px;
             border-radius: 3px;
         }
-        .legend-color.too-easy {
+        .difficulty-stats .difficulty-legend-color.too-easy {
             background: #ef5350;
         }
-        .legend-color.calibrated {
+        .difficulty-stats .difficulty-legend-color.calibrated {
             background: #66bb6a;
         }
-        .legend-color.too-hard {
+        .difficulty-stats .difficulty-legend-color.too-hard {
             background: #ffa726;
         }
-
     </style>
 </head>
 <body>
@@ -512,37 +510,30 @@
                     <span>Max Turns:</span>
                     <span class="stat-value">5</span>
                 </div>
-            
-        <!-- Difficulty Calibration Stats -->
-        <div class="difficulty-stats">
-            <div class="difficulty-title">Question Difficulty Distribution</div>
-            <div class="difficulty-bar">
-                <div class="difficulty-segment too-easy" style="width: 87.2%">
-                    87.2%
+            </div>
+            <!-- Difficulty Calibration Stats -->
+            <div class="difficulty-stats">
+                <div class="difficulty-title">Question Difficulty Distribution</div>
+                <div class="difficulty-bar">
+                    <div class="difficulty-segment too-easy" style="width: 87.2%">87.2%</div>
+                    <div class="difficulty-segment calibrated" style="width: 9.2%">9.2%</div>
+                    <div class="difficulty-segment too-hard" style="width: 3.7%">3.7%</div>
                 </div>
-                <div class="difficulty-segment calibrated" style="width: 9.2%">
-                    9.2%
-                </div>
-                <div class="difficulty-segment too-hard" style="width: 3.7%">
-                    3.7%
+                <div class="difficulty-legend">
+                    <div class="difficulty-legend-item">
+                        <span class="difficulty-legend-color too-easy"></span>
+                        <span>Too Easy (828)</span>
+                    </div>
+                    <div class="difficulty-legend-item">
+                        <span class="difficulty-legend-color calibrated"></span>
+                        <span>Calibrated (87)</span>
+                    </div>
+                    <div class="difficulty-legend-item">
+                        <span class="difficulty-legend-color too-hard"></span>
+                        <span>Too Hard (35)</span>
+                    </div>
                 </div>
             </div>
-            <div class="difficulty-legend">
-                <div class="legend-item">
-                    <span class="legend-color too-easy"></span>
-                    <span>Too Easy (828)</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color calibrated"></span>
-                    <span>Calibrated (87)</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color too-hard"></span>
-                    <span>Too Hard (35)</span>
-                </div>
-            </div>
-        </div>
-
         </div>
 
         <!-- Pairwise accuracy heatmap -->

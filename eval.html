@@ -343,9 +343,9 @@
 
             return finalDiag.was_truncated ||
                    finalDiag.no_question_found ||
-                   finalDiag.boundary_a_context_error ||
-                   finalDiag.boundary_b_context_error ||
-                   finalDiag.answer_key_context_error;
+                   finalDiag.boundary_a_finished === false ||
+                   finalDiag.boundary_b_finished === false ||
+                   finalDiag.answer_key_finished === false;
         }
 
         function getIssuesList(conv) {
@@ -356,9 +356,9 @@
             if (finalDiag) {
                 if (finalDiag.was_truncated) issues.push('Final question was too long and was truncated');
                 if (finalDiag.no_question_found) issues.push('No question could be parsed from the response');
-                if (finalDiag.boundary_a_context_error) issues.push('Boundary Model A ran out of context while answering');
-                if (finalDiag.boundary_b_context_error) issues.push('Boundary Model B ran out of context while answering');
-                if (finalDiag.answer_key_context_error) issues.push('Answer Key model ran out of context while answering');
+                if (finalDiag.boundary_a_finished === false) issues.push('Boundary Model A ran out of context while answering');
+                if (finalDiag.boundary_b_finished === false) issues.push('Boundary Model B ran out of context while answering');
+                if (finalDiag.answer_key_finished === false) issues.push('Answer Key model ran out of context while answering');
             }
 
             // If has_issue is true but no specific issues found, show generic message

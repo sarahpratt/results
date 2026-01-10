@@ -625,6 +625,18 @@
                 margin: { l: 100, r: 20, t: 10, b: 100 }
             };
 
+            // Click handler for difficulty heatmaps
+            const difficultyClickHandler = function(data) {
+                const point = data.points[0];
+                if (point.z !== null) {
+                    document.getElementById('model-a-select').value = point.y;
+                    document.getElementById('model-b-select').value = point.x;
+                    document.getElementById('filter-select').value = 'all';
+                    currentFilter = 'all';
+                    onPairChange();
+                }
+            };
+
             // Too Easy heatmap (white to orange)
             const tooEasyData = buildMatrix('tooEasyPct');
             Plotly.newPlot('heatmap-too-easy', [{
@@ -641,6 +653,7 @@
                 hoverongaps: false,
                 showscale: false
             }], miniLayout, { responsive: true });
+            document.getElementById('heatmap-too-easy').on('plotly_click', difficultyClickHandler);
 
             // Calibrated heatmap (white to green)
             const calibratedData = buildMatrix('calibratedPct');
@@ -658,6 +671,7 @@
                 hoverongaps: false,
                 showscale: false
             }], miniLayout, { responsive: true });
+            document.getElementById('heatmap-calibrated').on('plotly_click', difficultyClickHandler);
 
             // Too Hard heatmap (white to red)
             const tooHardData = buildMatrix('tooHardPct');
@@ -675,6 +689,7 @@
                 hoverongaps: false,
                 showscale: false
             }], miniLayout, { responsive: true });
+            document.getElementById('heatmap-too-hard').on('plotly_click', difficultyClickHandler);
         }
 
         function renderIssuesHeatmap() {

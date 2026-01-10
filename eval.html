@@ -6,6 +6,125 @@
     <title>DIAL-RL Evaluation</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Tab styles */
+        .tab-container {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab-button {
+            padding: 12px 24px;
+            border: none;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            border-radius: 8px 8px 0 0;
+            margin-right: 4px;
+            transition: all 0.2s;
+        }
+        .tab-button:hover {
+            background: #e0e0e0;
+        }
+        .tab-button.active {
+            background: white;
+            color: #1976d2;
+            border-bottom: 2px solid #1976d2;
+            margin-bottom: -2px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Issues bar */
+        .issues-bar {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .issues-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .issues-bar-container {
+            height: 24px;
+            background: #e8f5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .issues-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #ef9a9a 0%, #e57373 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .issues-bar-label {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #2e7d32;
+            font-weight: 500;
+        }
+        /* Issues alert box */
+        .issues-alert {
+            background: #fff3e0;
+            border: 1px solid #ffb74d;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 15px;
+        }
+        .issues-alert-title {
+            font-weight: 600;
+            color: #e65100;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .issues-alert-list {
+            margin: 0;
+            padding-left: 20px;
+            color: #bf360c;
+            font-size: 13px;
+        }
+        .issues-alert-list li {
+            margin-bottom: 4px;
+        }
+        /* Triple heatmap container */
+        .triple-heatmap {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .mini-heatmap {
+            flex: 1;
+            min-width: 280px;
+            max-width: 400px;
+        }
+        .mini-heatmap-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -42,13 +161,51 @@
                     <div class="difficulty-bar" id="difficulty-bar"></div>
                     <div class="difficulty-legend" id="difficulty-legend"></div>
                 </div>
+                <!-- Issues bar -->
+                <div class="issues-bar">
+                    <div class="issues-title">Rollouts with Issues in Final Question</div>
+                    <div class="issues-bar-container">
+                        <div class="issues-bar-fill" id="issues-bar-fill"></div>
+                        <span class="issues-bar-label" id="issues-bar-label"></span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Pairwise accuracy heatmap -->
+            <!-- Tabbed heatmap section -->
             <div class="heatmap-section">
-                <div class="section-title">Pairwise Accuracy Matrix</div>
-                <div class="heatmap-container">
-                    <div id="heatmap"></div>
+                <div class="tab-container">
+                    <button class="tab-button active" onclick="switchTab('accuracy')">Pairwise Accuracy</button>
+                    <button class="tab-button" onclick="switchTab('difficulty')">Difficulty Breakdown</button>
+                    <button class="tab-button" onclick="switchTab('issues')">Issues Matrix</button>
+                </div>
+
+                <div id="tab-accuracy" class="tab-content active">
+                    <div class="heatmap-container">
+                        <div id="heatmap-accuracy"></div>
+                    </div>
+                </div>
+
+                <div id="tab-difficulty" class="tab-content">
+                    <div class="triple-heatmap">
+                        <div class="mini-heatmap">
+                            <div class="mini-heatmap-title">Too Easy %</div>
+                            <div id="heatmap-too-easy"></div>
+                        </div>
+                        <div class="mini-heatmap">
+                            <div class="mini-heatmap-title">Calibrated %</div>
+                            <div id="heatmap-calibrated"></div>
+                        </div>
+                        <div class="mini-heatmap">
+                            <div class="mini-heatmap-title">Too Hard %</div>
+                            <div id="heatmap-too-hard"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-issues" class="tab-content">
+                    <div class="heatmap-container">
+                        <div id="heatmap-issues"></div>
+                    </div>
                 </div>
             </div>
 
@@ -64,6 +221,13 @@
                     <div class="control-group">
                         <label class="control-label">Boundary Model B</label>
                         <select id="model-b-select"></select>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Filter</label>
+                        <select id="filter-select">
+                            <option value="all">All Conversations</option>
+                            <option value="issues">With Issues Only</option>
+                        </select>
                     </div>
                     <div class="pair-accuracy">
                         <span>Pair Accuracy: </span>
@@ -101,8 +265,14 @@
         let evalData = null;
         let currentConvIndex = 0;
         let currentConversations = [];
+        let allConversationsForPair = [];
         let currentModelA = '';
         let currentModelB = '';
+        let currentFilter = 'all';
+        let currentTab = 'accuracy';
+
+        // Precomputed pairwise stats
+        let pairwiseStats = {};
 
         // Load data and initialize
         async function init() {
@@ -118,6 +288,9 @@
                 }
                 evalData = await response.json();
 
+                // Precompute pairwise statistics
+                computePairwiseStats();
+
                 document.title = `DIAL-RL Evaluation: ${evalData.metadata.questioner_model}`;
                 renderPage();
             } catch (e) {
@@ -129,6 +302,79 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'block';
             document.getElementById('error-message').textContent = message;
+        }
+
+        function computePairwiseStats() {
+            // Compute stats for each pair
+            for (const [pairKey, convs] of Object.entries(evalData.conversations)) {
+                let tooEasy = 0, calibrated = 0, tooHard = 0, withIssues = 0;
+
+                convs.forEach(conv => {
+                    if (conv.outcome === 'too_easy') tooEasy++;
+                    else if (conv.outcome === 'calibrated') calibrated++;
+                    else if (conv.outcome === 'too_hard') tooHard++;
+
+                    // Check for issues in final turn
+                    if (hasIssues(conv)) withIssues++;
+                });
+
+                const total = convs.length;
+                pairwiseStats[pairKey] = {
+                    total,
+                    tooEasy,
+                    calibrated,
+                    tooHard,
+                    withIssues,
+                    tooEasyPct: total > 0 ? tooEasy / total : 0,
+                    calibratedPct: total > 0 ? calibrated / total : 0,
+                    tooHardPct: total > 0 ? tooHard / total : 0,
+                    issuesPct: total > 0 ? withIssues / total : 0
+                };
+            }
+        }
+
+        function hasIssues(conv) {
+            const finalTurn = (conv.turns || []).find(t => t.is_final);
+            if (!finalTurn) return false;
+
+            return finalTurn.was_truncated ||
+                   finalTurn.no_question_found ||
+                   finalTurn.boundary_a_context_error ||
+                   finalTurn.boundary_b_context_error ||
+                   finalTurn.answer_key_context_error;
+        }
+
+        function getIssuesList(conv) {
+            const finalTurn = (conv.turns || []).find(t => t.is_final);
+            if (!finalTurn) return [];
+
+            const issues = [];
+            if (finalTurn.was_truncated) issues.push('Final question was too long and was truncated');
+            if (finalTurn.no_question_found) issues.push('No question could be parsed from the response');
+            if (finalTurn.boundary_a_context_error) issues.push('Boundary Model A ran out of context while answering');
+            if (finalTurn.boundary_b_context_error) issues.push('Boundary Model B ran out of context while answering');
+            if (finalTurn.answer_key_context_error) issues.push('Answer Key model ran out of context while answering');
+
+            return issues;
+        }
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+
+            // Update button states
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.tab-button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+
+            // Update content visibility
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // Render the appropriate heatmap if not already rendered
+            if (tabName === 'difficulty' && !document.getElementById('heatmap-too-easy').hasChildNodes()) {
+                renderDifficultyHeatmaps();
+            } else if (tabName === 'issues' && !document.getElementById('heatmap-issues').hasChildNodes()) {
+                renderIssuesHeatmap();
+            }
         }
 
         function renderPage() {
@@ -195,15 +441,31 @@
                 </div>
             `;
 
+            // Issues bar
+            const issuesPct = (stats.pct_rollouts_with_issues * 100);
+            const issuesFill = document.getElementById('issues-bar-fill');
+            const issuesLabel = document.getElementById('issues-bar-label');
+
+            if (issuesPct > 0) {
+                issuesFill.style.width = `${issuesPct}%`;
+                issuesFill.textContent = `${issuesPct.toFixed(1)}%`;
+                issuesLabel.textContent = '';
+            } else {
+                issuesFill.style.width = '0%';
+                issuesFill.textContent = '';
+                issuesLabel.textContent = 'No issues (0%)';
+            }
+
             // Populate model selects
             populateModelSelects();
 
-            // Render heatmap
-            renderHeatmap();
+            // Render main heatmap
+            renderAccuracyHeatmap();
 
             // Set up event listeners
             document.getElementById('model-a-select').addEventListener('change', onPairChange);
             document.getElementById('model-b-select').addEventListener('change', onPairChange);
+            document.getElementById('filter-select').addEventListener('change', onFilterChange);
         }
 
         function populateModelSelects() {
@@ -224,7 +486,7 @@
             }
         }
 
-        function renderHeatmap() {
+        function renderAccuracyHeatmap() {
             const models = evalData.boundary_models;
             const n = models.length;
 
@@ -278,13 +540,9 @@
                 }
             }];
 
-            // Fixed large size regardless of number of models
-            const width = 1000;
-            const height = 800;
-
             const layout = {
-                width: width,
-                height: height,
+                width: 1000,
+                height: 800,
                 xaxis: {
                     tickangle: -45,
                     tickfont: { size: 11 },
@@ -302,17 +560,225 @@
                 margin: { l: 180, r: 100, t: 30, b: 180 }
             };
 
-            Plotly.newPlot('heatmap', heatmapData, layout, { responsive: true });
+            Plotly.newPlot('heatmap-accuracy', heatmapData, layout, { responsive: true });
 
             // Click handler for heatmap
-            document.getElementById('heatmap').on('plotly_click', function(data) {
+            document.getElementById('heatmap-accuracy').on('plotly_click', function(data) {
                 const point = data.points[0];
                 if (point.z !== null) {
                     document.getElementById('model-a-select').value = point.y;
                     document.getElementById('model-b-select').value = point.x;
+                    document.getElementById('filter-select').value = 'all';
+                    currentFilter = 'all';
                     onPairChange();
                 }
             });
+        }
+
+        function renderDifficultyHeatmaps() {
+            const models = evalData.boundary_models;
+            const n = models.length;
+
+            // Build matrices for each difficulty type
+            const buildMatrix = (statKey) => {
+                const z = [];
+                const text = [];
+                for (let i = 0; i < n; i++) {
+                    const row = [];
+                    const textRow = [];
+                    for (let j = 0; j < n; j++) {
+                        if (i < j) {
+                            const pairKey = `${models[i]}|${models[j]}`;
+                            const stats = pairwiseStats[pairKey];
+                            if (stats) {
+                                const val = stats[statKey];
+                                row.push(val);
+                                textRow.push(`${(val * 100).toFixed(0)}%`);
+                            } else {
+                                row.push(null);
+                                textRow.push('');
+                            }
+                        } else {
+                            row.push(null);
+                            textRow.push('');
+                        }
+                    }
+                    z.push(row);
+                    text.push(textRow);
+                }
+                return { z, text };
+            };
+
+            const miniLayout = {
+                width: 350,
+                height: 350,
+                xaxis: {
+                    tickangle: -45,
+                    tickfont: { size: 9 },
+                    tickmode: 'linear'
+                },
+                yaxis: {
+                    autorange: 'reversed',
+                    tickfont: { size: 9 },
+                    tickmode: 'linear'
+                },
+                margin: { l: 100, r: 20, t: 10, b: 100 }
+            };
+
+            // Too Easy heatmap (white to orange)
+            const tooEasyData = buildMatrix('tooEasyPct');
+            Plotly.newPlot('heatmap-too-easy', [{
+                z: tooEasyData.z,
+                x: models,
+                y: models,
+                type: 'heatmap',
+                colorscale: [[0, '#ffffff'], [1, '#ffb74d']],
+                zmin: 0,
+                zmax: 1,
+                text: tooEasyData.text,
+                texttemplate: '%{text}',
+                textfont: { size: 10, color: '#333' },
+                hoverongaps: false,
+                showscale: false
+            }], miniLayout, { responsive: true });
+
+            // Calibrated heatmap (white to green)
+            const calibratedData = buildMatrix('calibratedPct');
+            Plotly.newPlot('heatmap-calibrated', [{
+                z: calibratedData.z,
+                x: models,
+                y: models,
+                type: 'heatmap',
+                colorscale: [[0, '#ffffff'], [1, '#81c784']],
+                zmin: 0,
+                zmax: 1,
+                text: calibratedData.text,
+                texttemplate: '%{text}',
+                textfont: { size: 10, color: '#333' },
+                hoverongaps: false,
+                showscale: false
+            }], miniLayout, { responsive: true });
+
+            // Too Hard heatmap (white to red)
+            const tooHardData = buildMatrix('tooHardPct');
+            Plotly.newPlot('heatmap-too-hard', [{
+                z: tooHardData.z,
+                x: models,
+                y: models,
+                type: 'heatmap',
+                colorscale: [[0, '#ffffff'], [1, '#e57373']],
+                zmin: 0,
+                zmax: 1,
+                text: tooHardData.text,
+                texttemplate: '%{text}',
+                textfont: { size: 10, color: '#333' },
+                hoverongaps: false,
+                showscale: false
+            }], miniLayout, { responsive: true });
+        }
+
+        function renderIssuesHeatmap() {
+            const models = evalData.boundary_models;
+            const n = models.length;
+
+            const z = [];
+            const text = [];
+            for (let i = 0; i < n; i++) {
+                const row = [];
+                const textRow = [];
+                for (let j = 0; j < n; j++) {
+                    if (i < j) {
+                        const pairKey = `${models[i]}|${models[j]}`;
+                        const stats = pairwiseStats[pairKey];
+                        if (stats) {
+                            row.push(stats.issuesPct);
+                            textRow.push(`${(stats.issuesPct * 100).toFixed(0)}%`);
+                        } else {
+                            row.push(null);
+                            textRow.push('');
+                        }
+                    } else {
+                        row.push(null);
+                        textRow.push('');
+                    }
+                }
+                z.push(row);
+                text.push(textRow);
+            }
+
+            const heatmapData = [{
+                z: z,
+                x: models,
+                y: models,
+                type: 'heatmap',
+                colorscale: [
+                    [0, '#e8f5e9'],
+                    [0.5, '#fff9c4'],
+                    [1, '#ffcdd2']
+                ],
+                zmin: 0,
+                zmax: 1,
+                text: text,
+                texttemplate: '%{text}',
+                textfont: { size: 14, color: '#333' },
+                hoverongaps: false,
+                hovertemplate: '%{y} vs %{x}<br>Issues: %{text}<extra></extra>',
+                showscale: true,
+                colorbar: {
+                    title: 'Issues %',
+                    tickformat: '.0%'
+                }
+            }];
+
+            const layout = {
+                width: 1000,
+                height: 800,
+                xaxis: {
+                    tickangle: -45,
+                    tickfont: { size: 11 },
+                    tickmode: 'linear',
+                    tick0: 0,
+                    dtick: 1
+                },
+                yaxis: {
+                    autorange: 'reversed',
+                    tickfont: { size: 11 },
+                    tickmode: 'linear',
+                    tick0: 0,
+                    dtick: 1
+                },
+                margin: { l: 180, r: 100, t: 30, b: 180 }
+            };
+
+            Plotly.newPlot('heatmap-issues', heatmapData, layout, { responsive: true });
+
+            // Click handler - filter to issues only
+            document.getElementById('heatmap-issues').on('plotly_click', function(data) {
+                const point = data.points[0];
+                if (point.z !== null) {
+                    document.getElementById('model-a-select').value = point.y;
+                    document.getElementById('model-b-select').value = point.x;
+                    document.getElementById('filter-select').value = 'issues';
+                    currentFilter = 'issues';
+                    onPairChange();
+                }
+            });
+        }
+
+        function onFilterChange() {
+            currentFilter = document.getElementById('filter-select').value;
+            applyFilter();
+        }
+
+        function applyFilter() {
+            if (currentFilter === 'issues') {
+                currentConversations = allConversationsForPair.filter(c => hasIssues(c));
+            } else {
+                currentConversations = allConversationsForPair;
+            }
+            currentConvIndex = 0;
+            document.getElementById('conv-total').textContent = currentConversations.length;
+            displayConversation(currentConvIndex);
         }
 
         function onPairChange() {
@@ -333,8 +799,10 @@
             // Get conversations for this pair
             const key1 = `${currentModelA}|${currentModelB}`;
             const key2 = `${currentModelB}|${currentModelA}`;
-            currentConversations = evalData.conversations[key1] || evalData.conversations[key2] || [];
-            currentConvIndex = 0;
+            allConversationsForPair = evalData.conversations[key1] || evalData.conversations[key2] || [];
+
+            // Apply filter
+            applyFilter();
 
             // Get pairwise accuracy
             const pairwise = evalData.pairwise_accuracy;
@@ -344,24 +812,22 @@
                 accuracy !== undefined ? (accuracy * 100).toFixed(1) + '%' : '--';
 
             // Count outcomes
-            let calibrated = 0, tooEasy = 0, tooHard = 0;
-            currentConversations.forEach(c => {
+            let calibrated = 0, tooEasy = 0, tooHard = 0, withIssues = 0;
+            allConversationsForPair.forEach(c => {
                 if (c.outcome === 'calibrated') calibrated++;
                 else if (c.outcome === 'too_easy') tooEasy++;
                 else if (c.outcome === 'too_hard') tooHard++;
+                if (hasIssues(c)) withIssues++;
             });
             document.getElementById('pair-stats').textContent =
-                `(${calibrated} calibrated, ${tooEasy} too easy, ${tooHard} too hard)`;
-
-            document.getElementById('conv-total').textContent = currentConversations.length;
-            displayConversation(currentConvIndex);
+                `(${calibrated} calibrated, ${tooEasy} too easy, ${tooHard} too hard, ${withIssues} with issues)`;
         }
 
         function displayConversation(index) {
             if (currentConversations.length === 0) {
                 document.getElementById('conversation-display').innerHTML = `
                     <div class="no-selection">
-                        <p>No conversations found for this pair</p>
+                        <p>No conversations found${currentFilter === 'issues' ? ' with issues' : ''} for this pair</p>
                     </div>
                 `;
                 return;
@@ -374,6 +840,20 @@
             const modelB = currentModelB;
             const reward = conv.reward;
             const maxTurns = evalData.metadata.max_turns;
+
+            // Check for issues
+            const issues = getIssuesList(conv);
+            let issuesHtml = '';
+            if (issues.length > 0) {
+                issuesHtml = `
+                    <div class="issues-alert">
+                        <div class="issues-alert-title">&#9888; Issues Detected in Final Question</div>
+                        <ul class="issues-alert-list">
+                            ${issues.map(issue => `<li>${issue}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
 
             // Use pre-computed correctness values
             const extractedA = conv.extracted_a || '';
@@ -454,6 +934,8 @@
             const finalParsedQuestion = finalTurn.question || '';
 
             const html = `
+                ${issuesHtml}
+
                 <!-- Dial visualization -->
                 <div class="dial-section">
                     <div class="dial-container">

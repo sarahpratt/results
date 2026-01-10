@@ -337,27 +337,28 @@
             // Check conversation-level has_issue flag first
             if (conv.has_issue) return true;
 
-            // Also check individual turn flags
-            const finalTurn = (conv.turns || []).find(t => t.is_final);
-            if (!finalTurn) return false;
+            // Check turn_diagnostics for the final turn
+            const finalDiag = (conv.turn_diagnostics || []).find(t => t.is_final);
+            if (!finalDiag) return false;
 
-            return finalTurn.was_truncated ||
-                   finalTurn.no_question_found ||
-                   finalTurn.boundary_a_context_error ||
-                   finalTurn.boundary_b_context_error ||
-                   finalTurn.answer_key_context_error;
+            return finalDiag.was_truncated ||
+                   finalDiag.no_question_found ||
+                   finalDiag.boundary_a_context_error ||
+                   finalDiag.boundary_b_context_error ||
+                   finalDiag.answer_key_context_error;
         }
 
         function getIssuesList(conv) {
-            const finalTurn = (conv.turns || []).find(t => t.is_final);
+            // Look in turn_diagnostics for the final turn's issue flags
+            const finalDiag = (conv.turn_diagnostics || []).find(t => t.is_final);
             const issues = [];
 
-            if (finalTurn) {
-                if (finalTurn.was_truncated) issues.push('Final question was too long and was truncated');
-                if (finalTurn.no_question_found) issues.push('No question could be parsed from the response');
-                if (finalTurn.boundary_a_context_error) issues.push('Boundary Model A ran out of context while answering');
-                if (finalTurn.boundary_b_context_error) issues.push('Boundary Model B ran out of context while answering');
-                if (finalTurn.answer_key_context_error) issues.push('Answer Key model ran out of context while answering');
+            if (finalDiag) {
+                if (finalDiag.was_truncated) issues.push('Final question was too long and was truncated');
+                if (finalDiag.no_question_found) issues.push('No question could be parsed from the response');
+                if (finalDiag.boundary_a_context_error) issues.push('Boundary Model A ran out of context while answering');
+                if (finalDiag.boundary_b_context_error) issues.push('Boundary Model B ran out of context while answering');
+                if (finalDiag.answer_key_context_error) issues.push('Answer Key model ran out of context while answering');
             }
 
             // If has_issue is true but no specific issues found, show generic message
@@ -657,11 +658,9 @@
                 colorscale: [[0, '#ffffff'], [1, '#ffb74d']],
                 zmin: 0,
                 zmax: 1,
-                text: tooEasyData.text,
-                texttemplate: '%{text}',
-                textfont: { size: 10, color: '#333' },
                 hoverongaps: false,
-                showscale: false
+                showscale: false,
+                hovertemplate: '%{y} vs %{x}<br>Too Easy: %{z:.1%}<extra></extra>'
             }], miniLayout, { responsive: true });
             document.getElementById('heatmap-too-easy').on('plotly_click', difficultyClickHandler);
 
@@ -675,11 +674,9 @@
                 colorscale: [[0, '#ffffff'], [1, '#81c784']],
                 zmin: 0,
                 zmax: 1,
-                text: calibratedData.text,
-                texttemplate: '%{text}',
-                textfont: { size: 10, color: '#333' },
                 hoverongaps: false,
-                showscale: false
+                showscale: false,
+                hovertemplate: '%{y} vs %{x}<br>Calibrated: %{z:.1%}<extra></extra>'
             }], miniLayout, { responsive: true });
             document.getElementById('heatmap-calibrated').on('plotly_click', difficultyClickHandler);
 
@@ -693,11 +690,9 @@
                 colorscale: [[0, '#ffffff'], [1, '#e57373']],
                 zmin: 0,
                 zmax: 1,
-                text: tooHardData.text,
-                texttemplate: '%{text}',
-                textfont: { size: 10, color: '#333' },
                 hoverongaps: false,
-                showscale: false
+                showscale: false,
+                hovertemplate: '%{y} vs %{x}<br>Too Hard: %{z:.1%}<extra></extra>'
             }], miniLayout, { responsive: true });
             document.getElementById('heatmap-too-hard').on('plotly_click', difficultyClickHandler);
         }

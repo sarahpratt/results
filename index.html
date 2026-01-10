@@ -67,12 +67,29 @@
 
         async function init() {
             try {
-                const response = await fetch('data/index.json');
-                if (!response.ok) {
+                // Load index.json which just contains list of model filenames
+                const indexResponse = await fetch('data/index.json');
+                if (!indexResponse.ok) {
                     throw new Error('Could not load index.json');
                 }
-                const data = await response.json();
-                modelData = data.models;
+                const indexData = await indexResponse.json();
+                const modelFiles = indexData.models;
+
+                // Load each model's JSON file and extract stats
+                const loadPromises = modelFiles.map(async (filename) => {
+                    try {
+                        const response = await fetch(`data/${filename}.json`);
+                        if (!response.ok) return null;
+                        const data = await response.json();
+                        return extractModelStats(data, filename);
+                    } catch (e) {
+                        console.error(`Failed to load ${filename}:`, e);
+                        return null;
+                    }
+                });
+
+                const results = await Promise.all(loadPromises);
+                modelData = results.filter(m => m !== null);
 
                 // Sort by calibrated percentage descending
                 modelData.sort((a, b) => b.calibrated_pct - a.calibrated_pct);
@@ -90,6 +107,30 @@
                     </div>
                 `;
             }
+        }
+
+        function extractModelStats(data, filename) {
+            const meta = data.metadata;
+            const stats = data.overall_stats;
+
+            const total = stats.too_easy + stats.calibrated + stats.too_hard;
+            if (total === 0) return null;
+
+            return {
+                model_name: meta.questioner_model,
+                filename: filename,
+                accuracy: stats.accuracy,
+                total_rollouts: meta.total_rollouts,
+                num_boundary_models: meta.num_boundary_models,
+                num_pairs: meta.num_pairs,
+                answer_key_model: meta.answer_key_model,
+                too_easy: stats.too_easy,
+                calibrated: stats.calibrated,
+                too_hard: stats.too_hard,
+                too_easy_pct: stats.too_easy / total * 100,
+                calibrated_pct: stats.calibrated / total * 100,
+                too_hard_pct: stats.too_hard / total * 100
+            };
         }
 
         function updateChart() {
